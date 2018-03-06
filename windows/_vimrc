@@ -44,8 +44,8 @@ set shiftwidth=4
 " On pressing tab, insert 4 spaces
 set expandtab
 
-colorscheme base16-default-dark
-set number
+colorscheme gruvbox
+set relativenumber
 set numberwidth=1
 
 " para que la pantalla se actualize solo al final de correr los macros
@@ -61,3 +61,20 @@ highlight link DoubleSpace Error
 " mark tabs
 syntax match UnrequiredTab /\t/
 highlight link UnrequiredTab airline_z_red  
+
+" no backup and swap files.
+set nobackup
+set nowritebackup
+set noswapfile
+
+" smart case when searching
+set ignorecase
+set smartcase
+" highlight as you type
+set incsearch
+set showmatch
+
+" better mouse interaction is no mouse integration
+set mouse=""
+"Hide when characters are typed
+set mousehide
