@@ -4,7 +4,6 @@ base16-vim-master
 ctrlp.vim-master
 limelight.vim
 nerdcommenter
-plugins.txt
 todo.txt-vim
 vim-airline-master
 vim-expand-region
