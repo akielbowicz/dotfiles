@@ -34,7 +34,7 @@ set -g default-shell nu
 {{- else if eq .chezmoi.os "darwin" }}
 set -g default-shell /opt/homebrew/bin/nu
 {{- else }}
-set -g default-shell {{ joinPath .chezmoi.homeDir ".linuxbrew/bin/nu" | quote }}
+set -g default-shell {{ output "sh" "-c" "which nu" | trim | quote }}
 {{- end }}
 set -g mouse off
 set -g mode-keys vi
