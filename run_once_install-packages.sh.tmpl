@@ -1,0 +1,3 @@
+#!/bin/sh
+# run_once: chezmoi runs this once (re-runs if the file content changes)
+brew bundle --file "{{ .chezmoi.sourceDir }}/Brewfile"

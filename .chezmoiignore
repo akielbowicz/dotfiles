@@ -1,0 +1,6 @@
+# Never track git identity — profiles and private config stay on the machine only
+.config/git/
+
+# Not applied by chezmoi
+README.md
+windows/
