@@ -55,21 +55,7 @@ source "~/.cache/nushell/carapace.nu"
 source "~/.config/nushell/ptyxis_tab_color.nu"
 
 # =============================================================================
-# GitHub CLI auto-auth per directory
+# GitHub CLI auto-auth per directory (account mappings in private.nu)
 # =============================================================================
 
-$env.config.hooks.env_change.PWD = (
-  $env.config.hooks.env_change.PWD | append {|before, after|
-    let gh_base = "/var/home/sasha/para/areas/dev/gh"
-    if (($after | str starts-with $"($gh_base)/ak")
-      or ($after | str starts-with $"($gh_base)/phorma")
-      or ($after | str starts-with $"($gh_base)/pycamp")
-      or ($after | str starts-with $"($gh_base)/tds")) {
-      $env.GH_TOKEN = (gh auth token -u akielbowicz)
-    } else if ($after | str starts-with $"($gh_base)/charly") {
-      $env.GH_TOKEN = (gh auth token -u charly-vibes)
-    } else if ($after | str starts-with $"($gh_base)/sk") {
-      $env.GH_TOKEN = (gh auth token -u sashakile)
-    }
-  }
-)
+source "~/.config/nushell/private.nu"

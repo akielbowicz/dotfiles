@@ -12,10 +12,10 @@
 
 [credential "https://github.com"]
 	helper =
-	helper = !{{ if eq .chezmoi.os "windows" }}'C:\\Users\\sasha\\scoop\\apps\\gh\\current\\bin\\gh.exe'{{ else if eq .chezmoi.os "darwin" }}/opt/homebrew/bin/gh{{ else }}/home/linuxbrew/.linuxbrew/bin/gh{{ end }} auth git-credential
+	helper = !{{ if eq .chezmoi.os "windows" }}'C:\\Users\\{{ .chezmoi.username }}\\scoop\\apps\\gh\\current\\bin\\gh.exe'{{ else if eq .chezmoi.os "darwin" }}/opt/homebrew/bin/gh{{ else }}/home/linuxbrew/.linuxbrew/bin/gh{{ end }} auth git-credential
 [credential "https://gist.github.com"]
 	helper =
-	helper = !{{ if eq .chezmoi.os "windows" }}'C:\\Users\\sasha\\scoop\\apps\\gh\\current\\bin\\gh.exe'{{ else if eq .chezmoi.os "darwin" }}/opt/homebrew/bin/gh{{ else }}/home/linuxbrew/.linuxbrew/bin/gh{{ end }} auth git-credential
+	helper = !{{ if eq .chezmoi.os "windows" }}'C:\\Users\\{{ .chezmoi.username }}\\scoop\\apps\\gh\\current\\bin\\gh.exe'{{ else if eq .chezmoi.os "darwin" }}/opt/homebrew/bin/gh{{ else }}/home/linuxbrew/.linuxbrew/bin/gh{{ end }} auth git-credential
 
 [column]
 	ui = auto

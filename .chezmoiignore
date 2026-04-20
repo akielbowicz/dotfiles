@@ -1,6 +1,9 @@
 # Never track git identity — profiles and private config stay on the machine only
 .config/git/
 
+# Never track machine-specific private nushell config (contains account names)
+.config/nushell/private.nu
+
 # Not applied by chezmoi
 README.md
 windows/
