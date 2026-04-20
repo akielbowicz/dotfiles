@@ -1,0 +1,41 @@
+{
+  "model": "sonnet",
+  "hooks": {
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime"
+          },
+          {
+            "type": "command",
+            "command": "wai status 2>/dev/null || true"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bd prime"
+          },
+          {
+            "type": "command",
+            "command": "wai status 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash /var/home/sasha/.claude/statusline-command.sh"
+  },
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high"
+}

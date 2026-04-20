@@ -1,0 +1,47 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.helix/
+
+# Secrets / local env
+.env
+.env.local
+.env.*.local
+
+# Beads (local issue tracker — never commit)
+.beads/
+
+# Python tooling
+.venv/
+*.py[cod]
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Build artifacts
+node_modules/
+target/
+dist/
+
+# Docker
+docker-compose.override.yml
+
+# REST client scratch files
+*.http
+
+# Dolt / Beads
+.dolt/
+.beads-credential-key

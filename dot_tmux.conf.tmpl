@@ -1,0 +1,147 @@
+# tmux config — managed by chezmoi
+# Works with both tmux and psmux
+#
+# Quick reference (prefix = Ctrl-b):
+#
+#   Windows          Panes              Copy mode (Ctrl-b Esc)
+#   -------          -----              ----------------------
+#   c  new window    |  split vertical  v      select
+#   n  next          -  split horiz     V      select line
+#   p  previous      h/j/k/l  navigate  Ctrl-v rectangle
+#   Space  last      H/J/K/L  resize    y      yank + exit
+#   1-9  jump        Tab  last pane     Y      yank line
+#   ,  rename        >/<  swap          A      append to buffer
+#   &  kill          z  zoom toggle     Ctrl-u/d  half page
+#                    x  kill            g/G    top/bottom
+#                                       q/Esc  exit
+#   Other
+#   -----
+#   d  detach   r  reload config   C-l  clear screen+history
+#   ?  list all keybindings
+
+# --- Terminal / Ghostty integration ---
+set -g default-terminal "tmux-256color"
+set -ga terminal-overrides ",*256col*:Tc"        # true color
+set -ga terminal-overrides ",ghostty:Tc"
+set -as terminal-overrides ',*:Smulx=\E[4::%p1%dm'                                        # undercurl
+set -as terminal-overrides ',*:Setulc=\E[58::2::%p1%{65536}%/%d::%p1%{256}%/%{255}%&%d::%p1%{255}%&%d%;m'
+set -g allow-passthrough on                      # clipboard passthrough (OSC 52)
+set -g extended-keys on                          # modified keys (e.g. Ctrl-Enter)
+
+# --- General ---
+{{- if eq .chezmoi.os "windows" }}
+set -g default-shell nu
+{{- else if eq .chezmoi.os "darwin" }}
+set -g default-shell /opt/homebrew/bin/nu
+{{- else }}
+set -g default-shell {{ joinPath .chezmoi.homeDir ".linuxbrew/bin/nu" | quote }}
+{{- end }}
+set -g mouse off
+set -g mode-keys vi
+set -g history-limit 50000
+set -g base-index 1
+set -g pane-base-index 1
+set -g renumber-windows on
+set -g escape-time 0
+set -g status-interval 2
+set -g focus-events on
+set -g set-titles on
+set -g set-titles-string "#S / #W"
+set -g set-clipboard on
+set -g monitor-activity on
+set -g visual-activity off
+
+# --- psmux-specific (Windows) ---
+{{- if eq .chezmoi.os "windows" }}
+set -g claude-code-fix-tty on
+set -g claude-code-force-interactive on
+set -g warm on
+set -g cursor-style block
+set -g cursor-blink off
+set -g prediction-dimming off
+set -g allow-predictions off
+{{- end }}
+
+# --- Vim-style pane navigation ---
+bind-key h select-pane -L
+bind-key j select-pane -D
+bind-key k select-pane -U
+bind-key l select-pane -R
+
+# Pane resizing (repeatable)
+bind-key -r H resize-pane -L 5
+bind-key -r J resize-pane -D 5
+bind-key -r K resize-pane -U 5
+bind-key -r L resize-pane -R 5
+
+# Splits in current directory
+bind-key | split-window -h -c "#{pane_current_path}"
+bind-key - split-window -v -c "#{pane_current_path}"
+bind-key c new-window -c "#{pane_current_path}"
+
+# Quick toggles
+bind-key Space last-window
+bind-key Tab last-pane
+bind-key e next-layout
+
+# Swap panes
+bind-key > swap-pane -D
+bind-key < swap-pane -U
+
+# Reload config
+bind-key r source-file ~/.tmux.conf \; display-message "Config reloaded"
+
+# Clear screen and scrollback
+bind-key C-l send-keys C-l \; clear-history
+
+# --- Scroll with Cmd+U (Ghostty sends prefix + U) ---
+bind-key U copy-mode -u
+bind-key -T copy-mode-vi U send-keys -X -N 10 scroll-up
+bind-key -T copy-mode-vi C-d send-keys -X -N 10 scroll-down
+
+# --- Copy mode ---
+bind-key Escape copy-mode
+
+# Selection
+bind-key -T copy-mode-vi v send-keys -X begin-selection
+bind-key -T copy-mode-vi V send-keys -X select-line
+bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
+
+# Yank
+bind-key -T copy-mode-vi y send-keys -X copy-selection-and-cancel
+bind-key -T copy-mode-vi Y send-keys -X copy-line
+
+# Stay in copy mode after yanking (for multiple copies)
+bind-key -T copy-mode-vi A send-keys -X append-selection
+
+# Selection highlight
+set -g mode-style "bg=colour24,fg=colour255"
+
+# --- Status bar ---
+set -g status-position bottom
+set -g status-justify left
+set -g status-left-length 40
+set -g status-right-length 80
+
+set -g status-style "bg=colour235,fg=colour248"
+set -g status-left "#[bg=colour24,fg=colour255,bold] #S #[bg=colour238,fg=colour255] #{session_windows}W #[bg=colour235] "
+set -g status-right "#[fg=colour244]#{=40:pane_current_path} #[fg=colour240]|#[fg=colour248] #{pane_current_command} #[fg=colour240]|#[fg=colour214] #{window_panes}P #[fg=colour240]|#[fg=colour255] %H:%M"
+
+# Window tabs — show directory basename instead of shell name
+set -g automatic-rename on
+set -g automatic-rename-format "#{b:pane_current_path}"
+set -g window-status-format "#[fg=colour244] #I:#{b:pane_current_path}#{?window_activity_flag, *,} "
+set -g window-status-current-format "#[bg=colour24,fg=colour255,bold] #I:#{b:pane_current_path}#{?window_zoomed_flag, Z,} "
+set -g window-status-separator ""
+set -g window-status-activity-style "fg=colour214"
+
+# Pane borders
+set -g pane-border-style "fg=colour238"
+set -g pane-active-border-style "fg=colour24"
+
+# Messages
+set -g message-style "bg=colour24,fg=colour255"
+
+# --- Per-project theming ---
+# To load project-specific styles, source them manually:
+#   tmux source-file /path/to/project/.tmux.conf

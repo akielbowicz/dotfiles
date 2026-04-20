@@ -1,0 +1,62 @@
+# git config — managed by chezmoi
+# Identity, url rewrites, and includeIf profiles live in ~/.config/git/private (not tracked)
+
+[include]
+	path = ~/.config/git/private
+
+[alias]
+	sync    = !git fetch origin && (git rebase origin/main || (git rebase --abort && git merge origin/main))
+	feature = "!f() { git fetch origin && git switch --no-track -c ak/$1 origin/main; }; f"
+	wt      = "!f() { case $1 in ak/*) canonical=$1; short=${1#ak/}; short=${short##*/} ;; */*) canonical=$1; short=${1##*/} ;; *) canonical=ak/$1; short=$1 ;; esac; r=$(basename $(git worktree list | head -1 | awk '{print $1}')); git fetch origin && if git show-ref --verify --quiet refs/heads/$canonical; then git worktree add ../$r-ak-$short $canonical; elif git show-ref --verify --quiet refs/remotes/origin/$canonical; then git worktree add --track -b $canonical ../$r-ak-$short origin/$canonical; else git worktree add --no-track -b $canonical ../$r-ak-$short origin/main; fi; }; f"
+	review  = "!f() { r=$(basename $(git worktree list | head -1 | awk '{print $1}')); git fetch origin && git worktree add ../$r-review-$1 origin/$1; }; f"
+
+[credential "https://github.com"]
+	helper =
+	helper = !{{ if eq .chezmoi.os "windows" }}'C:\\Users\\sasha\\scoop\\apps\\gh\\current\\bin\\gh.exe'{{ else if eq .chezmoi.os "darwin" }}/opt/homebrew/bin/gh{{ else }}/home/linuxbrew/.linuxbrew/bin/gh{{ end }} auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !{{ if eq .chezmoi.os "windows" }}'C:\\Users\\sasha\\scoop\\apps\\gh\\current\\bin\\gh.exe'{{ else if eq .chezmoi.os "darwin" }}/opt/homebrew/bin/gh{{ else }}/home/linuxbrew/.linuxbrew/bin/gh{{ end }} auth git-credential
+
+[column]
+	ui = auto
+[branch]
+	sort = -committerdate
+[tag]
+	sort = version:refname
+[init]
+	defaultBranch = main
+[diff]
+	algorithm = histogram
+	colorMoved = plain
+	mnemonicPrefix = true
+	renames = true
+[push]
+	default = simple
+	autoSetupRemote = true
+	followTags = true
+[fetch]
+	prune = true
+	pruneTags = true
+	all = true
+[help]
+	autocorrect = prompt
+[commit]
+	verbose = true
+[rerere]
+	enabled = true
+	autoupdate = true
+[core]
+	autocrlf = false
+	excludesfile = ~/.gitignore
+	attributesfile = ~/.gitattributes_global
+	hooksPath = ~/.git-hooks
+	fsmonitor = true
+	untrackedCache = true
+[rebase]
+	autoSquash = true
+	autoStash = true
+	updateRefs = true
+[merge]
+	conflictstyle = zdiff3
+[pull]
+	rebase = true
