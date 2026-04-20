@@ -49,3 +49,7 @@ $env.PATH = ($env.PATH | split row (char esep) | prepend $"($env.HOME)/go/bin")
 
 # Rust/Cargo
 $env.PATH = ($env.PATH | split row (char esep) | prepend $"($env.HOME)/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin" | prepend $"($env.HOME)/.cargo/bin")
+
+# bun
+$env.BUN_INSTALL = $"($env.HOME)/.bun"
+$env.PATH = ($env.PATH | split row (char esep) | prepend $"($env.BUN_INSTALL)/bin")
