@@ -94,10 +94,11 @@ bind-key r source-file ~/.tmux.conf \; display-message "Config reloaded"
 # Clear screen and scrollback
 bind-key C-l send-keys C-l \; clear-history
 
-# --- Scroll with Cmd+U (Ghostty sends prefix + U) ---
-bind-key U copy-mode -u
-bind-key -T copy-mode-vi U send-keys -X -N 10 scroll-up
-bind-key -T copy-mode-vi C-d send-keys -X -N 10 scroll-down
+# --- Scroll (vim-style C-u / C-d) ---
+bind-key U copy-mode -u                                      # Ghostty Cmd+U
+bind-key C-u copy-mode \; send-keys -X halfpage-up           # enter copy mode + scroll up
+bind-key -T copy-mode-vi C-u send-keys -X halfpage-up
+bind-key -T copy-mode-vi C-d send-keys -X halfpage-down
 
 # --- Copy mode ---
 bind-key Escape copy-mode
