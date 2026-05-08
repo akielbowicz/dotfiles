@@ -26,9 +26,11 @@ _jq=$(printf '%s\n' "$input" | jq -r '
     ((.context_window.current_usage.output_tokens // 0) | tostring) + "\t" +
     ((.cost.total_cost_usd // "") | tostring) + "\t" +
     (.transcript_path // "") + "\t" +
-    ((.context_window.context_window_size // 0) | tostring)
+    ((.context_window.context_window_size // 0) | tostring) + "\t" +
+    ((.rate_limits.five_hour.used_percentage // "") | tostring) + "\t" +
+    ((.rate_limits.seven_day.used_percentage // "") | tostring)
 ')
-IFS=$'\t' read -r model cwd used_pct fresh cache_w cache_r out total_cost transcript_path ctx_size <<< "$_jq"
+IFS=$'\t' read -r model cwd used_pct fresh cache_w cache_r out total_cost transcript_path ctx_size quota_5h quota_7d <<< "$_jq"
 
 # Working directory basename
 dir_name=$(basename "$cwd")
@@ -70,6 +72,28 @@ if [ -n "$used_pct" ] && [ "$used_pct" != "null" ] && [ "$used_pct" != "" ]; the
     fi
 
     context_info=" | ${ctx_color}ctx:${used_int}%${reset} i:$(fmt_tok $fresh) w:$(fmt_tok $cache_w) r:$(fmt_tok $cache_r) o:$(fmt_tok $out) ${cyan}hit:${hit_pct}%${reset}"
+fi
+
+# Quota (rate limit) usage
+quota_info=""
+_quota_part() {
+    local label=$1 val=$2
+    [ -z "$val" ] || [ "$val" = "null" ] && return
+    local val_int; val_int=$(printf "%.0f" "$val")
+    local color
+    if [ "$val_int" -ge 80 ]; then
+        color="$red"
+    elif [ "$val_int" -ge 50 ]; then
+        color="$yellow"
+    else
+        color="$green"
+    fi
+    printf " %s%s:%d%%%s" "$color" "$label" "$val_int" "$reset"
+}
+_q5=$(_quota_part "5h" "$quota_5h")
+_q7=$(_quota_part "7d" "$quota_7d")
+if [ -n "$_q5" ] || [ -n "$_q7" ]; then
+    quota_info=" |${_q5}${_q7}"
 fi
 
 # Session cost
@@ -227,8 +251,8 @@ PYEOF
     )
 fi
 
-printf "${blue}%s${reset} in ${cyan}%s${reset}%s%s%s" \
-    "$model" "$dir_name" "$git_branch" "$context_info" "$cost_info"
+printf "${blue}%s${reset} in ${cyan}%s${reset}%s%s%s%s" \
+    "$model" "$dir_name" "$git_branch" "$context_info" "$cost_info" "$quota_info"
 if [ -n "$category_line" ]; then
     printf '\n%s' "$category_line"
 fi
