@@ -5,14 +5,16 @@ import {
     type Context,
     type Model,
     type SimpleStreamOptions,
-    calculateCost,
     createAssistantMessageEventStream,
 } from "@mariozechner/pi-ai";
 import { spawn } from "child_process";
+import { writeFileSync, unlinkSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 import { formatContext } from "./format-context";
 
 interface RateLimitInfo { status: string; resetsAt?: string; }
-let latestRateLimits: Record<string, RateLimitInfo> = {}; // rateLimitType -> info
+let latestRateLimits: Record<string, RateLimitInfo> = {};
 
 function streamClaudeCli(
     model: Model<any>,
@@ -43,8 +45,8 @@ function streamClaudeCli(
         try {
             stream.push({ type: "start", partial: output });
 
-            const { history } = formatContext(context);
-            
+            const { history, systemPrompt } = formatContext(context, model.contextWindow);
+
             const args = [
                 "-p",
                 "--model", model.id,
@@ -54,10 +56,30 @@ function streamClaudeCli(
                 "--verbose",
             ];
 
+            const SYSTEM_PROMPT_ARG_LIMIT = 100_000;
+            let systemPromptTempFile: string | undefined;
+
+            if (systemPrompt) {
+                if (systemPrompt.length <= SYSTEM_PROMPT_ARG_LIMIT) {
+                    args.push("--system-prompt", systemPrompt);
+                } else {
+                    systemPromptTempFile = join(tmpdir(), `pi-claude-sysprompt-${process.pid}-${Date.now()}.txt`);
+                    writeFileSync(systemPromptTempFile, systemPrompt);
+                    args.push("--system-prompt-file", systemPromptTempFile);
+                }
+            }
+
             const child = spawn("claude", args, {
                 stdio: ["pipe", "pipe", "pipe"],
                 signal: options?.signal,
             });
+
+            const cleanupTempFile = () => {
+                if (systemPromptTempFile) {
+                    try { unlinkSync(systemPromptTempFile); } catch {}
+                    systemPromptTempFile = undefined;
+                }
+            };
 
             child.stdin.write(history);
             child.stdin.end();
@@ -67,7 +89,6 @@ function streamClaudeCli(
             stream.push({ type: "text_start", contentIndex, partial: output });
 
             let stdoutBuffer = "";
-            let lastFullAssistantText = "";
 
             const appendText = (delta: string) => {
                 if (!delta) return;
@@ -76,6 +97,14 @@ function streamClaudeCli(
                     block.text += delta;
                     stream.push({ type: "text_delta", contentIndex, delta, partial: output });
                 }
+            };
+
+            const updateUsage = (usage: any) => {
+                output.usage.input = usage.input_tokens ?? output.usage.input;
+                output.usage.output = usage.output_tokens ?? output.usage.output;
+                output.usage.cacheRead = usage.cache_read_input_tokens ?? output.usage.cacheRead;
+                output.usage.cacheWrite = usage.cache_creation_input_tokens ?? output.usage.cacheWrite;
+                output.usage.totalTokens = output.usage.input + output.usage.output;
             };
 
             const handleJsonLine = (line: string) => {
@@ -90,22 +119,12 @@ function streamClaudeCli(
                             return;
                         }
                         if (inner?.type === "message_delta" && inner.usage) {
-                            output.usage.input = inner.usage.input_tokens ?? output.usage.input;
-                            output.usage.output = inner.usage.output_tokens ?? output.usage.output;
-                            output.usage.cacheRead = inner.usage.cache_read_input_tokens ?? output.usage.cacheRead;
-                            output.usage.cacheWrite = inner.usage.cache_creation_input_tokens ?? output.usage.cacheWrite;
-                            output.usage.totalTokens =
-                                output.usage.input + output.usage.output + output.usage.cacheRead + output.usage.cacheWrite;
+                            updateUsage(inner.usage);
                         }
                         return;
                     }
 
                     if (event.type === "assistant") {
-                        const text = event.message?.content
-                            ?.filter((part: any) => part.type === "text")
-                            .map((part: any) => part.text)
-                            .join("") ?? "";
-                        lastFullAssistantText = text || lastFullAssistantText;
                         return;
                     }
 
@@ -125,16 +144,11 @@ function streamClaudeCli(
                     }
 
                     if (event.type === "result") {
-                        output.usage.input = event.usage?.input_tokens ?? output.usage.input;
-                        output.usage.output = event.usage?.output_tokens ?? output.usage.output;
-                        output.usage.cacheRead = event.usage?.cache_read_input_tokens ?? output.usage.cacheRead;
-                        output.usage.cacheWrite = event.usage?.cache_creation_input_tokens ?? output.usage.cacheWrite;
-                        output.usage.totalTokens =
-                            output.usage.input + output.usage.output + output.usage.cacheRead + output.usage.cacheWrite;
+                        if (event.usage) updateUsage(event.usage);
                         return;
                     }
                 } catch {
-                    appendText(line + "\n");
+                    console.error(`claude stdout (unparseable): ${line}`);
                 }
             };
 
@@ -149,9 +163,18 @@ function streamClaudeCli(
                 console.error(`claude stderr: ${data}`);
             });
 
-            child.on("close", (code) => {
+            let streamEnded = false;
+            const endStream = () => {
+                if (!streamEnded) { streamEnded = true; cleanupTempFile(); stream.end(); }
+            };
+
+            child.on("close", (code, signal) => {
                 if (stdoutBuffer.trim()) handleJsonLine(stdoutBuffer);
-                if (code !== 0) {
+                if (signal) {
+                    output.stopReason = "aborted";
+                    output.errorMessage = `claude killed by signal ${signal}`;
+                    stream.push({ type: "error", reason: "aborted", error: output });
+                } else if (code !== 0) {
                     output.stopReason = "error";
                     output.errorMessage = `claude exited with code ${code}`;
                     stream.push({ type: "error", reason: "error", error: output });
@@ -161,17 +184,16 @@ function streamClaudeCli(
                        stream.push({ type: "text_end", contentIndex, content: block.text, partial: output });
                     }
                     output.stopReason = "stop";
-                    // Note: claude doesn't provide token usage, so it's not calculated.
                     stream.push({ type: "done", reason: "stop", message: output });
                 }
-                stream.end();
+                endStream();
             });
 
             child.on("error", (err) => {
                 output.stopReason = "error";
                 output.errorMessage = err.message;
                 stream.push({ type: "error", reason: "error", error: output });
-                stream.end();
+                endStream();
             });
 
         } catch (error) {
@@ -210,19 +232,19 @@ export default function (pi: ExtensionAPI) {
     });
 
     pi.registerProvider("claude-cli", {
-        baseUrl: "https://cli.local", // Required by pi when registering models; unused by this custom stream provider.
-        apiKey: "claude-cli", // Required by pi validation; treated as a literal placeholder so /model shows the provider.
-        api: "claude-cli", // Custom API type
+        baseUrl: "https://cli.local",
+        apiKey: "claude-cli",
+        api: "claude-cli",
         streamSimple: streamClaudeCli,
         models: [
             {
-                id: "claude-sonnet-4-6",
-                name: "Claude Sonnet 4.6 (CLI)",
+                id: "claude-opus-4-7",
+                name: "Claude Opus 4.7 (CLI)",
                 reasoning: true,
                 input: ["text"],
                 cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
                 contextWindow: 200000,
-                maxTokens: 64000,
+                maxTokens: 128000,
             },
             {
                 id: "claude-opus-4-6",
@@ -234,6 +256,15 @@ export default function (pi: ExtensionAPI) {
                 maxTokens: 128000,
             },
             {
+                id: "claude-sonnet-4-6",
+                name: "Claude Sonnet 4.6 (CLI)",
+                reasoning: true,
+                input: ["text"],
+                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                contextWindow: 200000,
+                maxTokens: 64000,
+            },
+            {
                 id: "claude-sonnet-4-5",
                 name: "Claude Sonnet 4.5 (CLI)",
                 reasoning: true,
@@ -243,16 +274,7 @@ export default function (pi: ExtensionAPI) {
                 maxTokens: 64000,
             },
             {
-                id: "claude-opus-4-5",
-                name: "Claude Opus 4.5 (CLI)",
-                reasoning: true,
-                input: ["text"],
-                cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-                contextWindow: 200000,
-                maxTokens: 64000,
-            },
-            {
-                id: "claude-haiku-4-5",
+                id: "claude-haiku-4-5-20251001",
                 name: "Claude Haiku 4.5 (CLI)",
                 reasoning: true,
                 input: ["text"],

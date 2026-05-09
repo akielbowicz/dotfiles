@@ -1,22 +1,24 @@
 import { type Context, type Message } from "@mariozechner/pi-ai";
 
-const MAX_CONTENT_CHARS = 4000; // ~1K tokens per message
-const WINDOW_SIZE = 20; // keep last N messages plus the first (system) message
+const CHARS_PER_TOKEN = 4;
+const CONTEXT_BUDGET_RATIO = 0.8;
+const MIN_CONTENT_CHARS = 2000;
+const MAX_CONTENT_CHARS = 16000;
+const FORMATTING_OVERHEAD = 100;
 
-function truncateContent(content: string): string {
-    if (content.length <= MAX_CONTENT_CHARS) return content;
-    return content.slice(0, MAX_CONTENT_CHARS) + `\n... [truncated, ${content.length} chars total]`;
+function truncateContent(content: string, maxChars: number): string {
+    if (content.length <= maxChars) return content;
+    return content.slice(0, maxChars) + `\n... [truncated, ${content.length} chars total]`;
 }
 
-function getTextContent(message: Message): string {
-    const raw = typeof message.content === "string"
+function getRawText(message: Message): string {
+    return typeof message.content === "string"
         ? message.content.trim()
         : message.content
             .filter((part) => part.type === "text")
             .map((part) => part.text)
             .join("\n\n")
             .trim();
-    return truncateContent(raw);
 }
 
 function normalizeRole(role: Message["role"]): "system" | "user" | "assistant" | null {
@@ -25,11 +27,11 @@ function normalizeRole(role: Message["role"]): "system" | "user" | "assistant" |
     return null;
 }
 
-function formatSingleMessage(message: Message, index: number): string {
+function formatSingleMessage(message: Message, index: number, maxChars: number): string {
     const role = normalizeRole(message.role);
     if (!role) return "";
 
-    const content = getTextContent(message);
+    const content = truncateContent(getRawText(message), maxChars);
     if (!content) return "";
 
     const label = role.toUpperCase();
@@ -41,16 +43,59 @@ function formatSingleMessage(message: Message, index: number): string {
     ].join("\n");
 }
 
-export function formatContext(context: Context): { history: string } {
+export function formatContext(context: Context, contextWindow: number = 200000): { history: string; systemPrompt?: string } {
     const msgs = context.messages;
-    const windowed = msgs.length > WINDOW_SIZE + 1
-        ? [msgs[0], ...msgs.slice(-WINDOW_SIZE)]
-        : msgs;
 
-    const transcript = windowed
-        .map((message, index) => formatSingleMessage(message, index))
+    const budgetChars = Math.floor(contextWindow * CHARS_PER_TOKEN * CONTEXT_BUDGET_RATIO);
+
+    let systemPrompt: string | undefined;
+    let conversationMsgs = msgs;
+    if (msgs.length > 0 && (msgs[0].role === "system" || msgs[0].role === "developer")) {
+        systemPrompt = getRawText(msgs[0]);
+        conversationMsgs = msgs.slice(1);
+    }
+
+    const remainingBudget = budgetChars - (systemPrompt?.length ?? 0);
+    const msgCount = Math.max(conversationMsgs.length, 1);
+    const perMessageChars = Math.min(
+        MAX_CONTENT_CHARS,
+        Math.max(MIN_CONTENT_CHARS, Math.floor(remainingBudget / msgCount)),
+    );
+
+    let windowed = conversationMsgs;
+    let droppedCount = 0;
+    if (conversationMsgs.length > 1) {
+        let totalChars = 0;
+        let keepFrom = 0;
+        for (let i = conversationMsgs.length - 1; i >= 0; i--) {
+            const msgChars = Math.min(getRawText(conversationMsgs[i]).length, perMessageChars) + FORMATTING_OVERHEAD;
+            if (totalChars + msgChars > remainingBudget) {
+                keepFrom = i + 1;
+                break;
+            }
+            totalChars += msgChars;
+        }
+        if (keepFrom >= conversationMsgs.length) {
+            keepFrom = conversationMsgs.length - 1;
+        }
+        if (keepFrom > 0) {
+            droppedCount = keepFrom;
+            windowed = conversationMsgs.slice(keepFrom);
+        }
+    }
+
+    const parts: string[] = [];
+
+    if (droppedCount > 0) {
+        parts.push(`[... ${droppedCount} earlier message${droppedCount > 1 ? "s" : ""} omitted ...]`);
+    }
+
+    const formatted = windowed
+        .map((message, index) => formatSingleMessage(message, index + droppedCount, perMessageChars))
         .filter(Boolean)
         .join("\n\n");
+
+    if (formatted) parts.push(formatted);
 
     const history = [
         "You are resuming an existing conversation from a serialized transcript.",
@@ -60,8 +105,8 @@ export function formatContext(context: Context): { history: string } {
         "Preserve normal markdown formatting in your reply when it helps readability.",
         "",
         "## Conversation transcript",
-        transcript || "(empty transcript)",
+        parts.length > 0 ? parts.join("\n\n") : "(empty transcript)",
     ].join("\n");
 
-    return { history };
+    return { history, systemPrompt };
 }
