@@ -4,6 +4,7 @@ const CHARS_PER_TOKEN = 4;
 const CONTEXT_BUDGET_RATIO = 0.8;
 const MIN_CONTENT_CHARS = 2000;
 const MAX_CONTENT_CHARS = 16000;
+const MAX_ASSISTANT_CHARS = 4000;
 const FORMATTING_OVERHEAD = 100;
 
 function truncateContent(content: string, maxChars: number): string {
@@ -31,7 +32,8 @@ function formatSingleMessage(message: Message, index: number, maxChars: number):
     const role = normalizeRole(message.role);
     if (!role) return "";
 
-    const content = truncateContent(getRawText(message), maxChars);
+    const effectiveMax = role === "assistant" ? Math.min(maxChars, MAX_ASSISTANT_CHARS) : maxChars;
+    const content = truncateContent(getRawText(message), effectiveMax);
     if (!content) return "";
 
     const label = role.toUpperCase();
@@ -103,6 +105,11 @@ export function formatContext(context: Context, contextWindow: number = 200000):
         "Write only the next assistant reply to the final user message.",
         "Do not repeat, compress, or continue earlier assistant replies unless the final user message explicitly asks for that.",
         "Preserve normal markdown formatting in your reply when it helps readability.",
+        "",
+        "## Response guidelines",
+        "Be concise. Use bullet points over paragraphs. Do not narrate your process or summarize what you just did.",
+        "Skip preambles like 'Sure, I can help with that.' — go straight to the answer.",
+        "One short sentence per status update. No filler.",
         "",
         "## Conversation transcript",
         parts.length > 0 ? parts.join("\n\n") : "(empty transcript)",
