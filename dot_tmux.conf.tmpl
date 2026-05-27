@@ -74,6 +74,14 @@ bind-key -r J resize-pane -D 5
 bind-key -r K resize-pane -U 5
 bind-key -r L resize-pane -R 5
 
+# Resize mode — prefix+R, then H/J/K/L freely, Escape to exit
+bind-key R switch-client -T resize
+bind-key -T resize H resize-pane -L 5 \; switch-client -T resize
+bind-key -T resize J resize-pane -D 5 \; switch-client -T resize
+bind-key -T resize K resize-pane -U 5 \; switch-client -T resize
+bind-key -T resize L resize-pane -R 5 \; switch-client -T resize
+bind-key -T resize Escape switch-client -T prefix
+
 # Splits in current directory
 bind-key | split-window -h -c "#{pane_current_path}"
 bind-key - split-window -v -c "#{pane_current_path}"
@@ -130,11 +138,11 @@ set -g mode-style "bg=colour24,fg=colour255"
 set -g status-position bottom
 set -g status-justify left
 set -g status-left-length 40
-set -g status-right-length 80
+set -g status-right-length 100
 
 set -g status-style "bg=colour235,fg=colour248"
 set -g status-left "#[bg=colour24,fg=colour255,bold] #S #[bg=colour238,fg=colour255] #{session_windows}W #[bg=colour235] "
-set -g status-right "#[fg=colour244]#{=40:pane_current_path} #[fg=colour240]|#[fg=colour248] #{pane_current_command} #[fg=colour240]|#[fg=colour214] #{window_panes}P #[fg=colour240]|#[fg=colour255] %H:%M"
+set -g status-right "#{?#{!=:#{client_key_table},root},#[fg=colour196 bold][#{client_key_table}] #[fg=colour240]|,}#[fg=colour244]#{=40:pane_current_path} #[fg=colour240]|#[fg=colour248] #{pane_current_command} #[fg=colour240]|#[fg=colour214] #{window_panes}P #[fg=colour240]|#[fg=colour255] %H:%M"
 
 # Window tabs — show directory basename instead of shell name
 set -g automatic-rename on
@@ -143,6 +151,9 @@ set -g window-status-format "#[fg=colour244] #I:#{b:pane_current_path}#{?window_
 set -g window-status-current-format "#[bg=colour24,fg=colour255,bold] #I:#{b:pane_current_path}#{?window_zoomed_flag, Z,} "
 set -g window-status-separator ""
 set -g window-status-activity-style "fg=colour214"
+
+# Pane borders
+set -g display-panes-time 2000
 
 # Pane borders
 set -g pane-border-style "fg=colour238"

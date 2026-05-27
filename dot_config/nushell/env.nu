@@ -53,3 +53,6 @@ $env.PATH = ($env.PATH | split row (char esep) | prepend $"($env.HOME)/.rustup/t
 # bun
 $env.BUN_INSTALL = $"($env.HOME)/.bun"
 $env.PATH = ($env.PATH | split row (char esep) | prepend $"($env.BUN_INSTALL)/bin")
+
+# ROCm (AMD GPU) — unversioned .so symlinks live here; needed by AMDGPU.jl
+$env.ROCM_PATH = $"($env.HOME)/.local/rocm"
