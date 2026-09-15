@@ -35,6 +35,23 @@ source ~/.zoxide.nu
 # Atuin (shell history)
 source ~/.cache/nushell/atuin.nu
 
+# atuin init nu names both of its keybindings "atuin", which nushell flags as
+# shared_keybindings_name. Rename later duplicates so this survives atuin
+# regenerating the cache file.
+$env.config.keybindings = (
+    $env.config.keybindings
+    | enumerate
+    | each {|e|
+        let seen = ($e.index > 0 and ($env.config.keybindings
+            | first $e.index
+            | any {|k| $k.name == $e.item.name}))
+        if $seen {
+            $e.item | update name {|r| $"($r.name)-($e.index)" }
+        } else {
+            $e.item
+        }
+    })
+
 # Starship is auto-loaded from vendor/autoload
 
 # =============================================================================
