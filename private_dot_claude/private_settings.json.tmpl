@@ -1,4 +1,7 @@
 {
+  "env": {
+    "PLAYWRIGHT_MCP_IGNORE_HTTPS_ERRORS": "true"
+  },
   "model": "sonnet",
   "hooks": {
     "PreCompact": [
@@ -37,5 +40,6 @@
     "command": "bash {{ .chezmoi.homeDir }}/.claude/statusline-command.sh"
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "high"
+  "effortLevel": "high",
+  "skipAutoPermissionPrompt": true
 }

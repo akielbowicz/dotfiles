@@ -33,5 +33,7 @@ export PATH="$HOME/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin:$HOME/
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
-# Work journal
+# Work journal (single source of truth: JORNAL → repo via symlink)
 export JORNAL="$HOME/para/areas/jornal"
+export JOURNAL_PATH="$JORNAL"                           # incitaciones /close target (same repo)
+export JOURNAL_LOG_SUBDIR="areas/log"                    # repo daily-log layout
