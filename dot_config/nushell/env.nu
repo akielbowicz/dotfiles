@@ -22,6 +22,9 @@ $env.PATH = ($env.PATH | split row (char esep)
 $env.ZK_NOTEBOOK_DIR = $"($env.HOME)/dev/gh/sk/para/areas"
 $env.EDITOR = "hx"
 $env.JORNAL = $"($env.HOME)/para/areas/jornal"
+# Work journal routing for agent session skills (close/park/renew)
+$env.JOURNAL_PATH = $env.JORNAL
+$env.JOURNAL_LOG_SUBDIR = "areas/log"
 
 # =============================================================================
 # PATH additions
