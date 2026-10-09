@@ -1,6 +1,13 @@
 # git config — managed by chezmoi
 # Identity, url rewrites, and includeIf profiles live in ~/.config/git/private (not tracked)
 
+# Fallback identity for repos/worktrees no profile matches (fresh clones, /tmp).
+# Deliberately BEFORE the include: git processes includes at the point they
+# appear, and later assignments win — so matching profiles override this.
+[user]
+	name = unconfigured
+	email = unconfigured@localhost
+
 [include]
 	path = ~/.config/git/private
 
