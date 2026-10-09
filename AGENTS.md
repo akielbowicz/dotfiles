@@ -63,6 +63,13 @@ Full workflows and references in `~/.config/agents/`:
 | [`~/.config/agents/chezmoi.md`](~/.config/agents/chezmoi.md) | Dotfiles management, tracked files, chezmoi commands |
 | [`~/.config/agents/note-taking.md`](~/.config/agents/note-taking.md) | `just` note commands, repo locations, agent-friendly sync |
 | [`~/.config/agents/stream-journaling.md`](~/.config/agents/stream-journaling.md) | Stream journaling methodology and role |
+| [`~/.config/agents/canticos.md`](~/.config/agents/canticos.md) | Personal CLI tools from `~/para/areas/dev/gh/charly/canticos` (terapia, ci-usage, …) |
+
+## Personal CLI tools (canticos)
+
+- **terapia** — typed query CLI (nushell) over Pi agent sessions: `terapia list|tools|errors|stats|raw`. Use it INSTEAD of writing bespoke python/heredoc parsers over `~/.pi/agent/sessions`; output is JSON, incremental mtime-keyed cache in `~/.cache/terapia`.
+  - Useful for post-mortems: `terapia errors --all --group-by class`, `terapia tools <session-id-prefix> --errors-only`.
+  - Tests: `python3 ~/para/areas/dev/gh/charly/canticos/tests/test_terapia.py`
 
 ## Context discipline
 
