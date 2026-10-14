@@ -40,3 +40,10 @@ export JOURNAL_LOG_SUBDIR="areas/log"                    # repo daily-log layout
 
 # TypeSafe API key (used by the TypeSafe System One SDK)
 export TYPESAFE_API_KEY="{{ .typesafe.api_key }}"
+
+# OpenRouter API key (chatdispatch tier 1 / LLM-driven fallback)
+export OPENROUTER_API_KEY="{{ .openrouter.api_key }}"
+
+# Mistral + HuggingFace keys (fill in chezmoi.toml [data.mistral] / [data.huggingface], then: chezmoi apply ~/.bashrc)
+# export MISTRAL_API_KEY="{{ .mistral.api_key }}"
+# export HF_TOKEN="{{ .huggingface.api_key }}"
