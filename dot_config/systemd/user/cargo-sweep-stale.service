@@ -1,0 +1,6 @@
+[Unit]
+Description=Sweep stale cargo target/ directories
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/cargo-sweep-stale 21

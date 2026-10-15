@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# cargo-sweep-stale — delete Rust target/ dirs under ~/para untouched for N days.
+# Default retention: 21 days. Cargo regenerates target/ on next build; only
+# cost is rebuild time. Safety: only dirs containing a cargo marker
+# (CACHEDIR.TAG or .rustc_info.json) are removed.
+set -euo pipefail
+
+DAYS="${1:-21}"
+LOG="${XDG_STATE_HOME:-$HOME/.local/state}/cargo-sweep-stale.log"
+mkdir -p "$(dirname "$LOG")"
+
+find "$HOME/para" -maxdepth 6 -type d -name target -mtime "+$DAYS" -print0 |
+  while IFS= read -r -d '' d; do
+    if [[ -f "$d/CACHEDIR.TAG" || -f "$d/.rustc_info.json" ]]; then
+      size=$(du -sh "$d" 2>/dev/null | cut -f1)
+      rm -rf "$d"
+      printf '%s removed %s (%s)\n' "$(date -Is)" "$d" "$size" | tee -a "$LOG"
+    else
+      printf '%s skipped (no cargo marker): %s\n' "$(date -Is)" "$d" >>"$LOG"
+    fi
+  done

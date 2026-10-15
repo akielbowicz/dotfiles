@@ -1,0 +1,17 @@
+# Rust build config — keep target/ dirs small.
+# Shrink dev artifacts: full debuginfo is the main cause of multi-GB target/
+# dirs. Deps never need debuginfo; own code keeps line tables for backtraces.
+# Per-workspace Cargo.toml [profile.*] overrides take precedence where set.
+
+[profile.dev]
+debug = "line-tables-only"
+split-debuginfo = "unpacked"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.test]
+debug = "line-tables-only"
+
+[profile.test.package."*"]
+debug = false
