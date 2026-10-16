@@ -1,0 +1,8 @@
+[Unit]
+Description=journal — nightly commit + push of the work journal (incl. whisper archive)
+
+[Service]
+Type=oneshot
+Environment=PATH=/home/linuxbrew/.linuxbrew/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=%h/para/areas/dev/gh/ak/journal
+ExecStart=%h/para/areas/dev/gh/ak/journal/bin/nightly-sync.sh

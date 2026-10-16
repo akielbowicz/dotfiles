@@ -45,5 +45,5 @@ export TYPESAFE_API_KEY="{{ .typesafe.api_key }}"
 export OPENROUTER_API_KEY="{{ .openrouter.api_key }}"
 
 # Mistral + HuggingFace keys (fill in chezmoi.toml [data.mistral] / [data.huggingface], then: chezmoi apply ~/.bashrc)
-# export MISTRAL_API_KEY="{{ .mistral.api_key }}"
-# export HF_TOKEN="{{ .huggingface.api_key }}"
+{{ if index . "mistral" }}# export MISTRAL_API_KEY="{{ .mistral.api_key }}"{{ end }}
+{{ if index . "huggingface" }}# export HF_TOKEN="{{ .huggingface.api_key }}"{{ end }}

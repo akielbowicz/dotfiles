@@ -1,0 +1,9 @@
+[Unit]
+Description=Diario 23:30 — journal: commit + push nocturno
+
+[Timer]
+OnCalendar=*-*-* 23:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
